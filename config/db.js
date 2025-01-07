@@ -39,6 +39,97 @@
 
 
 
+// // const { createClient } = require('@supabase/supabase-js');
+// // const mongoose = require('mongoose'); // Import mongoose
+// // const fs = require('fs'); // Import the fs module
+// // require('dotenv').config();
+
+// // const supabaseUrl = process.env.SUPABASE_URL;
+// // const supabaseKey = process.env.SUPABASE_KEY;
+
+// // if (!supabaseUrl || !supabaseKey) {
+// //   throw new Error('Supabase URL or key is missing in .env file');
+// // }
+
+// // const supabase = createClient(supabaseUrl, supabaseKey);
+
+// // // Function to upload a file to Supabase Storage
+// // async function uploadFile(bucketName, filePath, fileName) {
+// //   try {
+// //     console.log('Uploading file to Supabase...');
+// //     console.log('Bucket:', bucketName);
+// //     console.log('File Path:', filePath);
+// //     console.log('File Name:', fileName);
+
+// //     // Read the file content
+// //     const fileContent = await fs.promises.readFile(filePath);
+// //     console.log('File Content Size:', fileContent.length);
+
+// //     // Upload the file content to Supabase
+// //     const { data, error } = await supabase
+// //       .storage
+// //       .from(bucketName)
+// //       .upload(fileName, fileContent, {
+// //         contentType: 'image/jpeg/png/gif/pdf/mp3/mp4', // Adjust based on file type
+// //       });
+
+// //     if (error) {
+// //       console.error('Supabase upload error:', error);
+// //       return null;
+// //     }
+
+// //     console.log('File uploaded successfully:', data);
+
+// //     // Get the public URL of the uploaded file
+// //     const { data: publicUrlData } = supabase
+// //       .storage
+// //       .from(bucketName)
+// //       .getPublicUrl(fileName);
+
+// //     console.log('Public URL:', publicUrlData.publicUrl);
+// //     return publicUrlData.publicUrl;
+// //   } catch (err) {
+// //     console.error('Error in uploadFile:', err);
+// //     return null;
+// //   }
+// // }
+
+// // // // Function to delete a file from Supabase Storage
+// // // async function deleteFile(bucketName, fileName) {
+// // //   try {
+// // //     console.log('Deleting file from Supabase...');
+// // //     console.log('Bucket:', bucketName);
+// // //     console.log('File Name:', fileName);
+
+// // //     // Delete the file from Supabase
+// // //     const { error } = await supabase
+// // //       .storage // Storage module
+// // //       .from(bucketName) // Bucket name
+// // //       .remove([fileName]); // File name
+
+// // //     if (error) {
+// // //       console.error('Supabase delete error:', error);
+// // //       return false;
+// // //     }
+
+// // //     console.log('File deleted successfully.');
+// // //     return true;
+// // //   } catch (err) {
+// // //     console.error('Error in deleteFile:', err);
+// // //     return false;
+// // //   }
+// // //     }
+
+// // // Function to connect to MongoDB
+// // function connectToDB() {
+// //   mongoose.connect(process.env.MONGO_URI)
+// //     .then(() => console.log('Connected to MongoDB'))
+// //     .catch((err) => console.error('Error connecting to MongoDB:', err));
+// // }
+
+// // module.exports = { supabase, uploadFile, connectToDB };
+
+
 const { createClient } = require('@supabase/supabase-js');
 const mongoose = require('mongoose'); // Import mongoose
 const fs = require('fs'); // Import the fs module

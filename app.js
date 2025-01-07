@@ -21,6 +21,16 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log('Uploads directory created:', uploadsDir);
 }
+// Session configuration
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET, // Use the secret key from environment variables
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 1000 * 60 * 60 * 24 }, // 1 day
+  })
+);
+
 
 // Middleware
 app.use(express.json());
