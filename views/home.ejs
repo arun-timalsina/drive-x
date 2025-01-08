@@ -111,7 +111,7 @@
             <div class="bg-white p-4 rounded-lg shadow-md flex items-center gap-4">
               <!-- File Preview -->
               <div class="flex-shrink-0">
-                <% if (file.fileName.endsWith('.jpg') || file.fileName.endsWith('.jpeg') || file.fileName.endsWith('.png')) { %>
+                <% if (file.fileName.endsWith('.jpg') || file.fileName.endsWith('.jpeg') || file.fileName.endsWith('.png') || file.fileName.endsWith('.JPG')) { %>
                   <img src="<%= file.fileUrl %>" alt="<%= file.fileName %>" class="w-16 h-16 object-cover rounded">
                 <% } else { %>
                   <div class="w-16 h-16 bg-gray-200 flex items-center justify-center rounded">
