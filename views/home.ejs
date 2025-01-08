@@ -123,7 +123,14 @@
               <!-- File Details -->
               <div class="flex-grow">
                 <p class="text-lg font-medium truncate"><%= file.fileName %></p>
-                <p class="text-sm text-gray-500">Uploaded on: <%= file.uploadDate.toLocaleString() %></p>
+               <!-- <p class="text-sm text-gray-500">Uploaded on: <%= file.uploadDate.toLocaleString() %></p> -->
+                <p class="text-sm text-gray-500">
+                  Uploaded on: 
+                  <!-- <%= new Date(file.uploadDate).toUTCString() %> (UTC)
+                  <br>
+                  Adjusted Time:  -->
+                  <%= new Date(new Date(file.uploadDate).getTime() - (5 * 60 + 45) * 60 * 1000).toUTCString() %>
+                </p>
               </div>
 
               <!-- Download and Delete Buttons -->
