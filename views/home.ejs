@@ -8,9 +8,44 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
   <style>
+    /* Hover effect for file cards */
+    .file-card {
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
     .file-card:hover {
       transform: translateY(-5px);
-      transition: transform 0.2s ease-in-out;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Drag-and-drop upload area */
+    .upload-area {
+      border: 2px dashed #ccc;
+      transition: border-color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+    }
+    .upload-area.dragover {
+      border-color: #3b82f6;
+      background-color: #f0f9ff;
+    }
+
+    /* Preview on hover */
+    .preview-container {
+      position: relative;
+    }
+    .preview-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+    }
+    .preview-container:hover .preview-overlay {
+      opacity: 1;
     }
   </style>
   <script>
@@ -46,49 +81,64 @@
       showToast(error, 'error');
     }
 
-    // Function to sort files
-    function sortFiles(sortBy) {
-      const filesContainer = document.getElementById('filesContainer');
-      const files = Array.from(filesContainer.children);
+    // Function to handle drag-and-drop upload
+    function handleDragDrop() {
+      const uploadArea = document.getElementById('uploadArea');
+      const fileInput = document.getElementById('file');
 
-      files.sort((a, b) => {
-        const aValue = a.getAttribute(`data-${sortBy}`);
-        const bValue = b.getAttribute(`data-${sortBy}`);
-
-        if (sortBy === 'uploadDate') {
-          return new Date(bValue) - new Date(aValue);
-        } else {
-          return aValue.localeCompare(bValue);
-        }
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
       });
 
-      filesContainer.innerHTML = '';
-      files.forEach(file => filesContainer.appendChild(file));
-    }
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
 
-    // Function to filter files
-    function filterFiles(filterBy) {
-      const files = document.querySelectorAll('.file-card');
-      files.forEach(file => {
-        const fileType = file.getAttribute('data-fileType');
-        if (filterBy === 'all' || fileType.includes(filterBy)) {
-          file.style.display = 'block';
-        } else {
-          file.style.display = 'none';
-        }
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        fileInput.files = e.dataTransfer.files;
       });
     }
 
-    // Function to preview PDF files
-    function previewPDF(url) {
-      Swal.fire({
-        title: 'PDF Preview',
-        html: `<iframe src="${url}" width="100%" height="500px"></iframe>`,
-        showCloseButton: true,
-        showConfirmButton: false,
-        width: '80%',
+    // Function to show upload progress
+    function handleUploadProgress() {
+      const form = document.getElementById('uploadForm');
+      const progressBar = document.getElementById('progressBar');
+      const status = document.getElementById('uploadStatus');
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = (event.loaded / event.total) * 100;
+            progressBar.value = percentComplete;
+            status.textContent = `Uploading: ${Math.round(percentComplete)}%`;
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            window.location.href = '/home?message=File uploaded successfully.';
+          } else {
+            window.location.href = '/home?error=File upload failed.';
+          }
+        };
+
+        xhr.open('POST', '/upload-file', true);
+        xhr.send(formData);
       });
     }
+
+    // Initialize drag-and-drop and upload progress
+    document.addEventListener('DOMContentLoaded', () => {
+      handleDragDrop();
+      handleUploadProgress();
+    });
   </script>
 </head>
 <body class="bg-gray-100">
@@ -100,44 +150,41 @@
 
     <h1 class="text-2xl font-bold mb-4">Welcome, <%= user.username %>!</h1>
 
-    <!-- Upload Form -->
-    <form id="uploadForm" action="/upload-file" method="post" enctype="multipart/form-data" class="mb-8 bg-white p-6 rounded-lg shadow-md">
-      <div class="mb-4">
-        <label class="block text-gray-700 text-sm font-bold mb-2" for="file">Choose a file to upload:</label>
-        <input type="file" name="file" id="file" required class="w-full p-2 border rounded">
-      </div>
-      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Upload File</button>
-      <progress id="progressBar" value="0" max="100" class="w-full mt-4"></progress>
-    </form>
-
-    <!-- Sorting and Filtering Options -->
-    <div class="mb-4 flex gap-4">
-      <select onchange="sortFiles(this.value)" class="p-2 border rounded">
-        <option value="fileName">Sort by Name</option>
-        <option value="uploadDate">Sort by Upload Date</option>
-      </select>
-      <select onchange="filterFiles(this.value)" class="p-2 border rounded">
-        <option value="all">All Files</option>
-        <option value="image">Images</option>
-        <option value="pdf">PDFs</option>
-      </select>
+    <!-- Upload Section -->
+    <div id="uploadArea" class="upload-area bg-white p-6 rounded-lg shadow-md mb-8">
+      <form id="uploadForm" action="/upload-file" method="post" enctype="multipart/form-data">
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="file">Drag and drop files here or click to upload:</label>
+          <input type="file" name="file" id="file" required class="hidden">
+          <div class="text-center py-8">
+            <p class="text-gray-500">Drag and drop files here</p>
+            <p class="text-gray-500">or</p>
+            <button type="button" onclick="document.getElementById('file').click()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Choose File</button>
+          </div>
+        </div>
+        <progress id="progressBar" value="0" max="100" class="w-full mt-4"></progress>
+        <p id="uploadStatus" class="text-sm text-gray-500 mt-2"></p>
+      </form>
     </div>
 
     <!-- Uploaded Files Section -->
     <div id="filesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <% if (files && files.length > 0) { %>
         <% files.forEach(file => { %>
-          <div class="file-card bg-white p-4 rounded-lg shadow-md flex flex-col transform transition-transform"
-               data-fileName="<%= file.fileName %>"
-               data-uploadDate="<%= file.uploadDate %>"
-               data-fileType="<%= file.fileName.endsWith('.pdf') ? 'pdf' : 'image' %>">
+          <div class="file-card bg-white p-4 rounded-lg shadow-md transform transition-transform">
             <!-- File Preview -->
-            <div class="flex-shrink-0">
+            <div class="preview-container">
               <% if (file.fileName.endsWith('.jpg') || file.fileName.endsWith('.jpeg') || file.fileName.endsWith('.png')) { %>
-                <img src="<%= file.fileUrl %>" alt="<%= file.fileName %>" class="w-full h-48 object-cover rounded cursor-pointer" onclick="Swal.fire({ imageUrl: '<%= file.fileUrl %>', imageAlt: '<%= file.fileName %>', showConfirmButton: false })">
+                <img src="<%= file.fileUrl %>" alt="<%= file.fileName %>" class="w-full h-48 object-cover rounded">
+                <div class="preview-overlay">
+                  <button onclick="Swal.fire({ imageUrl: '<%= file.fileUrl %>', imageAlt: '<%= file.fileName %>', showConfirmButton: false })" class="bg-white text-blue-500 px-4 py-2 rounded">Preview</button>
+                </div>
               <% } else if (file.fileName.endsWith('.pdf')) { %>
-                <div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded cursor-pointer" onclick="previewPDF('<%= file.fileUrl %>')">
+                <div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded">
                   <span class="text-gray-500 text-2xl">📄</span>
+                </div>
+                <div class="preview-overlay">
+                  <button onclick="Swal.fire({ html: `<iframe src='<%= file.fileUrl %>' width='100%' height='500px'></iframe>`, showConfirmButton: false, width: '80%' })" class="bg-white text-blue-500 px-4 py-2 rounded">Preview</button>
                 </div>
               <% } else { %>
                 <div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded">
@@ -147,7 +194,7 @@
             </div>
 
             <!-- File Details -->
-            <div class="mt-4 flex-grow">
+            <div class="mt-4">
               <p class="text-lg font-medium truncate"><%= file.fileName %></p>
               <p class="text-sm text-gray-500">
                 Uploaded on: <%= new Date(file.uploadDate).toLocaleString() %>
