@@ -6,6 +6,13 @@
   <title>Home - Drive Clone</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+  <style>
+    .file-card:hover {
+      transform: translateY(-5px);
+      transition: transform 0.2s ease-in-out;
+    }
+  </style>
   <script>
     // Function to show toast notifications
     function showToast(message, type) {
@@ -38,13 +45,57 @@
     if (error) {
       showToast(error, 'error');
     }
+
+    // Function to sort files
+    function sortFiles(sortBy) {
+      const filesContainer = document.getElementById('filesContainer');
+      const files = Array.from(filesContainer.children);
+
+      files.sort((a, b) => {
+        const aValue = a.getAttribute(`data-${sortBy}`);
+        const bValue = b.getAttribute(`data-${sortBy}`);
+
+        if (sortBy === 'uploadDate') {
+          return new Date(bValue) - new Date(aValue);
+        } else {
+          return aValue.localeCompare(bValue);
+        }
+      });
+
+      filesContainer.innerHTML = '';
+      files.forEach(file => filesContainer.appendChild(file));
+    }
+
+    // Function to filter files
+    function filterFiles(filterBy) {
+      const files = document.querySelectorAll('.file-card');
+      files.forEach(file => {
+        const fileType = file.getAttribute('data-fileType');
+        if (filterBy === 'all' || fileType.includes(filterBy)) {
+          file.style.display = 'block';
+        } else {
+          file.style.display = 'none';
+        }
+      });
+    }
+
+    // Function to preview PDF files
+    function previewPDF(url) {
+      Swal.fire({
+        title: 'PDF Preview',
+        html: `<iframe src="${url}" width="100%" height="500px"></iframe>`,
+        showCloseButton: true,
+        showConfirmButton: false,
+        width: '80%',
+      });
+    }
   </script>
 </head>
 <body class="bg-gray-100">
   <div class="container mx-auto p-4">
     <!-- Logout Button -->
     <form action="/user/logout" method="post" class="mb-4">
-      <button type="submit" class="bg-gray-500 text-white px-4 py-2 rounded">Logout</button>
+      <button type="submit" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Logout</button>
     </form>
 
     <h1 class="text-2xl font-bold mb-4">Welcome, <%= user.username %>!</h1>
@@ -59,42 +110,59 @@
       <progress id="progressBar" value="0" max="100" class="w-full mt-4"></progress>
     </form>
 
+    <!-- Sorting and Filtering Options -->
+    <div class="mb-4 flex gap-4">
+      <select onchange="sortFiles(this.value)" class="p-2 border rounded">
+        <option value="fileName">Sort by Name</option>
+        <option value="uploadDate">Sort by Upload Date</option>
+      </select>
+      <select onchange="filterFiles(this.value)" class="p-2 border rounded">
+        <option value="all">All Files</option>
+        <option value="image">Images</option>
+        <option value="pdf">PDFs</option>
+      </select>
+    </div>
+
     <!-- Uploaded Files Section -->
-    <div class="mt-8">
-      <h2 class="text-xl font-semibold mb-4">Your Uploaded Files</h2>
+    <div id="filesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <% if (files && files.length > 0) { %>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <% files.forEach(file => { %>
-            <div class="bg-white p-4 rounded-lg shadow-md flex flex-col">
-              <!-- File Preview -->
-              <div class="flex-shrink-0">
-                <% if (file.fileName.endsWith('.jpg') || file.fileName.endsWith('.jpeg') || file.fileName.endsWith('.png')) { %>
-                  <img src="<%= file.fileUrl %>" alt="<%= file.fileName %>" class="w-full h-48 object-cover rounded">
-                <% } else { %>
-                  <div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded">
-                    <span class="text-gray-500 text-2xl">📄</span>
-                  </div>
-                <% } %>
-              </div>
-
-              <!-- File Details -->
-              <div class="mt-4 flex-grow">
-                <p class="text-lg font-medium truncate"><%= file.fileName %></p>
-                <p class="text-sm text-gray-500">
-                  Uploaded on: <%= new Date(file.uploadDate).toLocaleString() %>
-                </p>
-              </div>
-
-              <!-- Download and Delete Buttons -->
-              <div class="mt-4 flex gap-2">
-                <a href="<%= file.fileUrl %>" download class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Download</a>
-                <form action="/delete-file/<%= file._id %>" method="post" onsubmit="return confirm('Are you sure you want to delete this file?');">
-                  <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Delete</button>
-                </form>
-              </div>
+        <% files.forEach(file => { %>
+          <div class="file-card bg-white p-4 rounded-lg shadow-md flex flex-col transform transition-transform"
+               data-fileName="<%= file.fileName %>"
+               data-uploadDate="<%= file.uploadDate %>"
+               data-fileType="<%= file.fileName.endsWith('.pdf') ? 'pdf' : 'image' %>">
+            <!-- File Preview -->
+            <div class="flex-shrink-0">
+              <% if (file.fileName.endsWith('.jpg') || file.fileName.endsWith('.jpeg') || file.fileName.endsWith('.png')) { %>
+                <img src="<%= file.fileUrl %>" alt="<%= file.fileName %>" class="w-full h-48 object-cover rounded cursor-pointer" onclick="Swal.fire({ imageUrl: '<%= file.fileUrl %>', imageAlt: '<%= file.fileName %>', showConfirmButton: false })">
+              <% } else if (file.fileName.endsWith('.pdf')) { %>
+                <div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded cursor-pointer" onclick="previewPDF('<%= file.fileUrl %>')">
+                  <span class="text-gray-500 text-2xl">📄</span>
+                </div>
+              <% } else { %>
+                <div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded">
+                  <span class="text-gray-500 text-2xl">📁</span>
+                </div>
+              <% } %>
             </div>
-          <% }) %>
-        </div>
+
+            <!-- File Details -->
+            <div class="mt-4 flex-grow">
+              <p class="text-lg font-medium truncate"><%= file.fileName %></p>
+              <p class="text-sm text-gray-500">
+                Uploaded on: <%= new Date(file.uploadDate).toLocaleString() %>
+              </p>
+            </div>
+
+            <!-- Download and Delete Buttons -->
+            <div class="mt-4 flex gap-2">
+              <a href="<%= file.fileUrl %>" download target="_blank" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Download</a>
+              <form action="/delete-file/<%= file._id %>" method="post" onsubmit="return confirm('Are you sure you want to delete this file?');">
+                <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Delete</button>
+              </form>
+            </div>
+          </div>
+        <% }) %>
       <% } else { %>
         <p class="text-gray-600">No files uploaded yet.</p>
       <% } %>
